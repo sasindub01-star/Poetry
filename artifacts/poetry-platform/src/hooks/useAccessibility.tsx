@@ -53,6 +53,8 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
     root.setAttribute("data-font-size", fontSize);
     root.setAttribute("data-contrast", contrast);
     root.setAttribute("data-density", density);
+    root.style.fontSize =
+      fontSize === "normal" ? "16px" : fontSize === "large" ? "17.5px" : "19px";
     localStorage.setItem(KEY, JSON.stringify({ fontSize, contrast, density }));
   }, [fontSize, contrast, density]);
 

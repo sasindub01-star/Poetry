@@ -7,6 +7,7 @@ import { LanguageToggle } from "./LanguageToggle";
 import { ThemeToggle } from "./ThemeToggle";
 import { AccessibilityMenu } from "./AccessibilityMenu";
 import { getAuthUser, clearAuth } from "@/lib/auth";
+import { canAccessEvaluations, canAccessJuryPanel, canAccessReports, canAccessUsers } from "@/lib/permissions";
 
 interface NavItem {
   href: string;
@@ -28,41 +29,48 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
   const user = getAuthUser();
 
-  const navItems: { href: string; label: string; icon: ReactNode }[] = [
+  const navItems: { href: string; label: string; icon: ReactNode; show: boolean }[] = [
     {
       href: "/dashboard",
       label: t("dashboard"),
       icon: <LayoutIcon path="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />,
+      show: true,
     },
     {
       href: "/dashboard/submissions",
       label: t("submissions"),
       icon: <LayoutIcon path="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
+      show: true,
     },
     {
       href: "/dashboard/users",
       label: t("users"),
       icon: <LayoutIcon path="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />,
+      show: canAccessUsers(user?.role),
     },
     {
       href: "/dashboard/jury",
       label: t("juryPanel"),
       icon: <LayoutIcon path="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />,
+      show: canAccessJuryPanel(user?.role),
     },
     {
       href: "/dashboard/evaluations",
       label: t("evaluations"),
       icon: <LayoutIcon path="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />,
+      show: canAccessEvaluations(user?.role),
     },
     {
       href: "/dashboard/competitions",
       label: t("competitions"),
       icon: <LayoutIcon path="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />,
+      show: canAccessReports(user?.role),
     },
     {
       href: "/dashboard/settings",
       label: t("settings"),
       icon: <LayoutIcon path="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />,
+      show: true,
     },
   ];
 
@@ -90,7 +98,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
       {/* Nav items */}
       <nav className="flex-1 py-4 space-y-1 px-2 overflow-y-auto">
-        {navItems.map((item) => {
+        {navItems.filter((item) => item.show).map((item) => {
           const isActive = location === item.href || (item.href !== "/dashboard" && location.startsWith(item.href));
           return (
             <Link
@@ -176,10 +184,10 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       </AnimatePresence>
 
       {/* Main area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-visible">
         {/* Top bar */}
-        <header className="h-14 flex items-center justify-between px-4 border-b border-border/50 bg-card/50 backdrop-blur flex-shrink-0">
-          <div className="flex items-center gap-3">
+        <header className="h-14 flex items-center justify-between px-4 border-b border-border/50 bg-card/50 backdrop-blur flex-shrink-0 relative z-40 overflow-visible">
+          <div className="flex items-center gap-3 relative z-50">
             <button
               onClick={() => { setSidebarCollapsed(!sidebarCollapsed); setMobileOpen(!mobileOpen); }}
               className="p-1.5 rounded-lg hover:bg-white/5 text-foreground/50 hover:text-foreground transition-all"
