@@ -122,7 +122,8 @@ export default function DashboardHome() {
   const user = getAuthUser();
   const isJury = user?.role === "jury";
   const isReviewer = user?.role === "reviewer";
-  const useJuryStyleDashboard = isJury || isReviewer;
+  const isSultan = user?.role === "sultan" || (user?.role as string) === "dr_sultan";
+  const useJuryStyleDashboard = isJury || isReviewer || isSultan;
   const { data: stats } = useGetDashboardStats();
   const { data: activityData } = useGetRecentActivity({ limit: 8 });
   const { data: trendsData } = useGetSubmissionTrends();
@@ -216,17 +217,17 @@ export default function DashboardHome() {
           >
             <h3 className="text-sm font-semibold mb-4">Submission Trends</h3>
             <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={isReviewer ? trends : fallbackTrends}>
+              <LineChart data={isReviewer || isSultan ? trends : fallbackTrends}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(200,169,110,0.08)" />
                 <XAxis dataKey="month" tick={{ fill: "rgba(200,169,110,0.5)", fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: "rgba(200,169,110,0.5)", fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(200,169,110,0.2)", borderRadius: 8, fontSize: 12 }} />
                 <Line type="monotone" dataKey="submissions" stroke="#C8A96E" strokeWidth={2} dot={false} />
-                {isReviewer && <Line type="monotone" dataKey="approved" stroke="#1A7A6B" strokeWidth={2} dot={false} />}
-                {isReviewer && <Line type="monotone" dataKey="rejected" stroke="#B85C5C" strokeWidth={2} dot={false} />}
+                {(isReviewer || isSultan) && <Line type="monotone" dataKey="approved" stroke="#1A7A6B" strokeWidth={2} dot={false} />}
+                {(isReviewer || isSultan) && <Line type="monotone" dataKey="rejected" stroke="#B85C5C" strokeWidth={2} dot={false} />}
               </LineChart>
             </ResponsiveContainer>
-            {isReviewer && (
+            {(isReviewer || isSultan) && (
               <div className="flex gap-4 mt-3">
                 {[{ label: "Submissions", color: "#C8A96E" }, { label: "Approved", color: "#1A7A6B" }, { label: "Rejected", color: "#B85C5C" }].map((item) => (
                   <div key={item.label} className="flex items-center gap-1.5 text-xs text-foreground/50">

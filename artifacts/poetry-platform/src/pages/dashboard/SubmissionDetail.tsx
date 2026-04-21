@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link, useParams } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
 import { useLanguage } from "@/hooks/useLanguage";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { getAuthUser } from "@/lib/auth";
@@ -21,6 +21,7 @@ const STAGES = [
 ];
 
 const STATUS_ORDER = STAGES.map((s) => s.key);
+const SULTAN_DECISIONS_KEY = "sultan-final-decisions";
 
 function stageIndex(status: string) {
   const i = STATUS_ORDER.indexOf(status);
@@ -121,6 +122,43 @@ const fakeDetails: Record<number, any> = {
     attachment: "voice_of_the_palm.pdf", submittedAt: "2026-01-30T10:00:00Z",
     reviewerNotes: "", finalScore: null, finalDecision: null, evaluations: [],
   },
+  5: {
+    id: 5, referenceNumber: "AHA-2026-005", status: "sent_for_final_decision",
+    poetName: "Omar Al Shamsi", poetNameAr: "عمر الشمسي",
+    poetEmail: "o.shamsi@email.com", poetPhone: "+971 50 888 1122",
+    poetNationality: "UAE", profileSource: "Auto-fetched from system",
+    requesterName: "Omar Al Shamsi", requesterNameAr: "عمر الشمسي",
+    requesterRelationship: "Self", channel: "Direct Submission",
+    requestDate: "10 January 2026",
+    poemTitle: "The Brave Falcon", poemTitleAr: "الصقر الشجاع",
+    poemType: "Nabati", openingLine: "يا صقرنا الحر في العليا لك المجد",
+    poemContent: "يا صقرنا الحر في العليا لك المجد\nترفرف في سما الأوطان كالعهد\nوفي جناحك عز ما له حد",
+    attachment: "the_brave_falcon.pdf", submittedAt: "2026-01-10T10:00:00Z",
+    reviewerNotes: "Consolidated and ready for final decision.",
+    finalScore: null, finalDecision: null,
+    evaluations: [
+      { id: 21, juryMemberName: "Prof. Ahmad Al Mazrouei", linguisticScore: 0, poeticScore: 0, originalityScore: 0, emotionalScore: 0, culturalScore: 0, totalScore: 0, recommendation: "approve", notes: "Approve." },
+      { id: 22, juryMemberName: "Dr. Layla Al Suwaidi", linguisticScore: 0, poeticScore: 0, originalityScore: 0, emotionalScore: 0, culturalScore: 0, totalScore: 0, recommendation: "reject", notes: "Reject due to structure issues." },
+    ],
+  },
+  11: {
+    id: 11, referenceNumber: "AHA-2026-011", status: "sent_for_final_decision",
+    poetName: "Khalid Al Nuaimi", poetNameAr: "خالد النعيمي",
+    poetEmail: "k.nuaimi@email.com", poetPhone: "+971 50 330 4400",
+    poetNationality: "UAE", profileSource: "Auto-fetched from system",
+    requesterName: "Khalid Al Nuaimi", requesterNameAr: "خالد النعيمي",
+    requesterRelationship: "Self", channel: "Website",
+    requestDate: "12 January 2026",
+    poemTitle: "Silent Dunes", poemTitleAr: "كثبان صامتة",
+    poemType: "Standard", openingLine: "على الرمل تمشي الحكايات بهدوء",
+    poemContent: "على الرمل تمشي الحكايات بهدوء\nوفي الليل يعلو صدى القلب والضوء\nتغني الرياح نشيد البقاء",
+    attachment: "silent_dunes.pdf", submittedAt: "2026-01-12T10:00:00Z",
+    reviewerNotes: "Submitted to final decision stage.",
+    finalScore: null, finalDecision: null,
+    evaluations: [
+      { id: 23, juryMemberName: "Dr. Hamad Al Bloushi", linguisticScore: 0, poeticScore: 0, originalityScore: 0, emotionalScore: 0, culturalScore: 0, totalScore: 0, recommendation: "approve", notes: "Approve." },
+    ],
+  },
   7: {
     id: 7, referenceNumber: "AHA-2026-007", status: "pending_information",
     poetName: "Rashid Al Ketbi", poetNameAr: "راشد الكتبي",
@@ -208,9 +246,11 @@ export default function SubmissionDetail() {
   const { lang } = useLanguage();
   const { isDark } = useTheme();
   const params = useParams<{ id: string }>();
+  const [, navigate] = useLocation();
   const id = parseInt(params.id || "0", 10);
   const user = getAuthUser();
   const isReviewer = user?.role === "reviewer" || user?.role === "sysadmin" || user?.role === "admin";
+  const isSultan = user?.role === "sultan" || (user?.role as string) === "dr_sultan";
 
   const initialSub = fakeDetails[id] ?? fakeDetails[2];
   const [submission, setSubmission] = useState<any>(initialSub);
@@ -222,6 +262,7 @@ export default function SubmissionDetail() {
   const [selectedJury, setSelectedJury] = useState<number[]>([]);
   const [deadline, setDeadline] = useState("48");
   const [consolidationNote, setConsolidationNote] = useState("");
+  const [confirmDecision, setConfirmDecision] = useState<"approved" | "rejected" | null>(null);
 
   const statusColors = isDark ? statusColorsDark : statusColorsLight;
   const currentStageIdx = stageIndex(submission.status);
@@ -303,6 +344,34 @@ export default function SubmissionDetail() {
   function sendToSultan() {
     setSubmission((prev: any) => ({ ...prev, status: "sent_for_final_decision" }));
     showToast("Final form sent to Dr. Sultan for decision");
+  }
+
+  function sultanDecision(decision: "approved" | "rejected") {
+    setSubmission((prev: any) => ({
+      ...prev,
+      status: decision,
+      finalDecision: decision === "approved" ? "Approved by Dr. Sultan" : "Rejected by Dr. Sultan",
+    }));
+    showToast(decision === "approved" ? "Final decision recorded: Approved" : "Final decision recorded: Rejected");
+  }
+
+  function requestSultanDecision(decision: "approved" | "rejected") {
+    setConfirmDecision(decision);
+  }
+
+  function confirmSultanDecision() {
+    if (!confirmDecision) return;
+    sultanDecision(confirmDecision);
+    try {
+      const raw = localStorage.getItem(SULTAN_DECISIONS_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      const next = { ...parsed, [submission.id]: confirmDecision };
+      localStorage.setItem(SULTAN_DECISIONS_KEY, JSON.stringify(next));
+    } catch {
+      // no-op fallback for malformed storage values
+    }
+    setConfirmDecision(null);
+    navigate("/dashboard/submissions");
   }
 
   // Reviewer action buttons based on current status
@@ -454,32 +523,38 @@ export default function SubmissionDetail() {
       </Link>
 
       {/* ── Stage breadcrumb ─────────────────────────────────────────────────── */}
-      <div className="glass-panel rounded-xl border border-gold/10 p-3 mb-5 overflow-x-auto">
-        <div className="flex items-center gap-0 min-w-max">
-          {STAGES.map((stage, i) => {
-            const done = i < currentStageIdx;
-            const active = i === currentStageIdx;
-            return (
-              <div key={stage.key} className="flex items-center">
-                <div className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
-                  active
-                    ? "gold-gradient text-navy"
-                    : done
-                      ? "text-gold/60 bg-gold/5"
-                      : "text-foreground/30"
-                }`}>
-                  {i + 1}. {stage.label}
+      {!isSultan ? (
+        <div className="glass-panel rounded-xl border border-gold/10 p-3 mb-5 overflow-x-auto">
+          <div className="flex items-center gap-0 min-w-max">
+            {STAGES.map((stage, i) => {
+              const done = i < currentStageIdx;
+              const active = i === currentStageIdx;
+              return (
+                <div key={stage.key} className="flex items-center">
+                  <div className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+                    active
+                      ? "gold-gradient text-navy"
+                      : done
+                        ? "text-gold/60 bg-gold/5"
+                        : "text-foreground/30"
+                  }`}>
+                    {i + 1}. {stage.label}
+                  </div>
+                  {i < STAGES.length - 1 && (
+                    <svg className={`w-3 h-3 mx-0.5 flex-shrink-0 ${done ? "text-gold/40" : "text-foreground/15"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
                 </div>
-                {i < STAGES.length - 1 && (
-                  <svg className={`w-3 h-3 mx-0.5 flex-shrink-0 ${done ? "text-gold/40" : "text-foreground/15"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="glass-panel rounded-xl border border-gold/10 p-3 mb-5">
+          <p className="text-sm font-semibold text-gold">Final Decision</p>
+        </div>
+      )}
 
       {/* ── Reviewer identity bar ────────────────────────────────────────────── */}
       {isReviewer && (
@@ -491,6 +566,26 @@ export default function SubmissionDetail() {
             <div>
               <p className="text-sm font-semibold">{user?.name ?? "Reviewer"}</p>
               <p className="text-xs text-foreground/40">Application Reviewer</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-foreground/40">AHA — National Poets Evaluation</p>
+            <span className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusColors[submission.status] ?? ""}`}>
+              {statusLabel(submission.status)}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {isSultan && (
+        <div className="glass-panel rounded-xl border border-gold/10 px-5 py-3.5 mb-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full gold-gradient flex items-center justify-center text-navy font-bold text-sm flex-shrink-0">
+              {user?.name?.charAt(0) ?? "S"}
+            </div>
+            <div>
+              <p className="text-sm font-semibold">{user?.name ?? "Dr. Sultan"}</p>
+              <p className="text-xs text-foreground/40">Final decision authority</p>
             </div>
           </div>
           <div className="text-right">
@@ -681,10 +776,79 @@ export default function SubmissionDetail() {
             <ReviewerActions />
           </motion.div>
         )}
+
+        {isSultan && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass-panel rounded-xl border border-gold/15 p-5">
+            <h3 className="text-xs font-semibold text-foreground/40 uppercase tracking-wider mb-3">
+              Final Decision
+            </h3>
+            {submission.status === "sent_for_final_decision" || submission.status === "approved" || submission.status === "rejected" ? (
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => requestSultanDecision("approved")}
+                  className="px-5 py-2.5 rounded-lg border border-green-500/30 text-green-400 hover:bg-green-500/10 text-sm font-semibold transition-all"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => requestSultanDecision("rejected")}
+                  className="px-5 py-2.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 text-sm font-semibold transition-all"
+                >
+                  Reject
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-foreground/50">
+                This submission is not yet in the final decision stage.
+              </p>
+            )}
+          </motion.div>
+        )}
       </div>
 
       {/* ── Jury form preview modal (Stage 3) ────────────────────────────────── */}
       <AnimatePresence>
+        {confirmDecision && isSultan && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setConfirmDecision(null)}
+            className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 16, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 16, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass-panel rounded-2xl border border-gold/30 w-full max-w-md bg-card p-6"
+            >
+              <h3 className="text-lg font-display font-bold mb-2">Confirm Final Decision</h3>
+              <p className="text-sm text-foreground/60 mb-5">
+                Are you sure you want to {confirmDecision === "approved" ? "approve" : "reject"} this submission?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmDecision(null)}
+                  className="flex-1 py-2.5 rounded-lg border border-border text-foreground/60 hover:border-gold/20 transition-all"
+                >
+                  No
+                </button>
+                <button
+                  onClick={confirmSultanDecision}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                    confirmDecision === "approved"
+                      ? "border border-green-500/30 text-green-400 hover:bg-green-500/10"
+                      : "border border-red-500/30 text-red-400 hover:bg-red-500/10"
+                  }`}
+                >
+                  Yes
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         {showJuryForm && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -141,6 +141,8 @@ const juryAssignments: JuryAssignment[] = [
 
 // Jury-only data
 const JURY_STATUSES = ["all", "pending", "submitted", "expired"];
+const SULTAN_STATUSES = ["pending", "approved", "rejected"] as const;
+const SULTAN_DECISIONS_KEY = "sultan-final-decisions";
 
 export default function SubmissionsPage() {
   const { lang } = useLanguage();
@@ -151,9 +153,11 @@ export default function SubmissionsPage() {
   const readOnly = isReadOnly(role);
   const isJury = role === "jury";
   const isReviewer = role === "reviewer" || role === "sysadmin" || role === "admin";
+  const isSultan = role === "sultan" || (role as string) === "dr_sultan";
 
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState(isSultan ? "pending" : "all");
   const [search, setSearch] = useState("");
+  const [sultanDecisions, setSultanDecisions] = useState<Record<number, "approved" | "rejected">>({});
 
   // Jury-only modal state
   const [activeSub, setActiveSub] = useState<Submission | null>(null);
@@ -165,20 +169,48 @@ export default function SubmissionsPage() {
 
   const statusColors = isDark ? statusColorsDark : statusColorsLight;
 
-  const statuses = isJury ? JURY_STATUSES : ["all", ...ALL_STATUSES];
+  const statuses = isJury ? JURY_STATUSES : isSultan ? [...SULTAN_STATUSES] : ["all", ...ALL_STATUSES];
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SULTAN_DECISIONS_KEY);
+      setSultanDecisions(raw ? JSON.parse(raw) : {});
+    } catch {
+      setSultanDecisions({});
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isSultan && !SULTAN_STATUSES.includes(statusFilter as (typeof SULTAN_STATUSES)[number])) {
+      setStatusFilter("pending");
+    }
+  }, [isSultan, statusFilter]);
 
   const filtered = useMemo(() => {
-    let list = fakeSubmissions;
+    const getEffectiveStatus = (s: Submission) =>
+      isSultan && sultanDecisions[s.id] ? sultanDecisions[s.id] : s.status;
+
+    let list = fakeSubmissions.map((s) => ({ ...s, status: getEffectiveStatus(s) }));
     if (isJury) {
       const assignedIds = new Set(juryAssignments.map((a) => a.submissionId));
       list = list.filter((s) => assignedIds.has(s.id));
+    } else if (isSultan) {
+      list = list.filter(
+        (s) => s.status === "sent_for_final_decision" || s.status === "approved" || s.status === "rejected"
+      );
     }
     return list.filter((s) => {
       const assignment = juryAssignments.find((a) => a.submissionId === s.id);
       const juryStatus = assignment?.status;
       const matchStatus =
         statusFilter === "all" ||
-        (isJury ? juryStatus === statusFilter : s.status === statusFilter);
+        (isJury
+          ? juryStatus === statusFilter
+          : isSultan
+            ? (statusFilter === "pending"
+                ? s.status === "sent_for_final_decision"
+                : s.status === statusFilter)
+            : s.status === statusFilter);
       const matchSearch =
         !search ||
         (showIdentity && s.poetName.toLowerCase().includes(search.toLowerCase())) ||
@@ -186,7 +218,7 @@ export default function SubmissionsPage() {
         s.referenceNumber.toLowerCase().includes(search.toLowerCase());
       return matchStatus && matchSearch;
     });
-  }, [statusFilter, search, isJury, showIdentity]);
+  }, [statusFilter, search, isJury, isSultan, showIdentity, sultanDecisions]);
 
   // Reviewer "requests needing action" count = rows in Received status
   const needsAction = useMemo(() =>
@@ -256,6 +288,11 @@ export default function SubmissionsPage() {
                 · {lang === "ar" ? "وضع المراجعة المغفلة (هوية الشاعر مخفية)" : "Blind review mode — poet identity hidden"}
               </span>
             )}
+            {isSultan && (
+              <span className="ms-2 text-gold/70">
+                · {lang === "ar" ? "الطلبات المحالة للقرار النهائي" : "Submissions awaiting final decision"}
+              </span>
+            )}
             {readOnly && (
               <span className="ms-2 text-amber-400">
                 · {lang === "ar" ? "للقراءة فقط" : "Read-only"}
@@ -286,9 +323,11 @@ export default function SubmissionsPage() {
                     : "border border-border text-foreground/50 hover:border-gold/30 hover:text-foreground"
                 }`}
               >
-                {s === "all"
-                  ? (lang === "ar" ? "الكل" : "All")
-                  : (isJury ? (s.charAt(0).toUpperCase() + s.slice(1)) : statusLabel(s))}
+                {isSultan
+                  ? (s === "pending" ? "Pending" : s === "approved" ? "Approved" : "Rejected")
+                  : s === "all"
+                    ? (lang === "ar" ? "الكل" : "All")
+                    : (isJury ? (s.charAt(0).toUpperCase() + s.slice(1)) : statusLabel(s))}
               </button>
             ))}
           </div>
@@ -396,7 +435,7 @@ export default function SubmissionsPage() {
                         </span>
                       ) : (
                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusColors[sub.status] ?? ""}`}>
-                          {statusLabel(sub.status)}
+                          {isSultan && sub.status === "sent_for_final_decision" ? "Pending" : statusLabel(sub.status)}
                         </span>
                       )}
                     </td>

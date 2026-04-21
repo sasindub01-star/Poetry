@@ -14,7 +14,6 @@ import SubmissionsPage from "@/pages/dashboard/SubmissionsPage";
 import SubmissionDetail from "@/pages/dashboard/SubmissionDetail";
 import UsersPage from "@/pages/dashboard/UsersPage";
 import JuryPage from "@/pages/dashboard/JuryPage";
-import CompetitionsPage from "@/pages/dashboard/CompetitionsPage";
 import SettingsPage from "@/pages/dashboard/SettingsPage";
 import AccessDenied from "@/pages/dashboard/AccessDenied";
 import NotFound from "@/pages/not-found";
@@ -75,9 +74,6 @@ function Router() {
       </Route>
       <Route path="/dashboard/jury">
         <ProtectedRoute component={JuryPage} allowRoles={["reviewer", "sysadmin", "admin"]} />
-      </Route>
-      <Route path="/dashboard/competitions">
-        <ProtectedRoute component={CompetitionsPage} allowRoles={["sultan", "sysadmin", "admin", "audit"]} />
       </Route>
       <Route path="/dashboard/settings">
         <ProtectedRoute component={SettingsPage} />
