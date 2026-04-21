@@ -17,7 +17,10 @@ import JuryPage from "@/pages/dashboard/JuryPage";
 import EvaluationsPage from "@/pages/dashboard/EvaluationsPage";
 import CompetitionsPage from "@/pages/dashboard/CompetitionsPage";
 import SettingsPage from "@/pages/dashboard/SettingsPage";
+import AccessDenied from "@/pages/dashboard/AccessDenied";
 import NotFound from "@/pages/not-found";
+import { getAuthUser, type UserRole } from "@/lib/auth";
+import { hasAnyRole } from "@/lib/permissions";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,9 +31,21 @@ const queryClient = new QueryClient({
   },
 });
 
-function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+function ProtectedRoute({
+  component: Component,
+  allowRoles,
+}: {
+  component: React.ComponentType;
+  allowRoles?: UserRole[];
+}) {
   if (!isAuthenticated()) {
     return <Redirect to="/login" />;
+  }
+  if (allowRoles?.length) {
+    const user = getAuthUser();
+    if (!user || !hasAnyRole(user.role, allowRoles)) {
+      return <AccessDenied />;
+    }
   }
   return <Component />;
 }
@@ -51,19 +66,22 @@ function Router() {
         <ProtectedRoute component={SubmissionsPage} />
       </Route>
       <Route path="/dashboard/submissions/:id">
-        <ProtectedRoute component={SubmissionDetail} />
+        <ProtectedRoute
+          component={SubmissionDetail}
+          allowRoles={["reviewer", "sultan", "sysadmin", "admin", "audit"]}
+        />
       </Route>
       <Route path="/dashboard/users">
-        <ProtectedRoute component={UsersPage} />
+        <ProtectedRoute component={UsersPage} allowRoles={["sysadmin", "admin"]} />
       </Route>
       <Route path="/dashboard/jury">
-        <ProtectedRoute component={JuryPage} />
+        <ProtectedRoute component={JuryPage} allowRoles={["reviewer", "sysadmin", "admin"]} />
       </Route>
       <Route path="/dashboard/evaluations">
-        <ProtectedRoute component={EvaluationsPage} />
+        <ProtectedRoute component={EvaluationsPage} allowRoles={["reviewer", "jury", "sultan", "sysadmin", "admin", "audit"]} />
       </Route>
       <Route path="/dashboard/competitions">
-        <ProtectedRoute component={CompetitionsPage} />
+        <ProtectedRoute component={CompetitionsPage} allowRoles={["reviewer", "sultan", "sysadmin", "admin", "audit"]} />
       </Route>
       <Route path="/dashboard/settings">
         <ProtectedRoute component={SettingsPage} />

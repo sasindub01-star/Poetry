@@ -42,7 +42,7 @@ export function AccessibilityMenu() {
   const resetLabel = lang === "ar" ? "إعادة تعيين" : "Reset";
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative z-[120]">
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label={labelText}
@@ -63,7 +63,7 @@ export function AccessibilityMenu() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-72 rounded-xl glass-panel border border-gold/20 shadow-2xl shadow-black/30 z-50 p-4"
+            className="absolute right-0 mt-2 w-72 rounded-xl glass-panel border border-gold/20 shadow-2xl shadow-black/30 z-[140] p-4"
           >
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/50">
               <p className="text-xs font-bold text-gold uppercase tracking-wider">{labelText}</p>

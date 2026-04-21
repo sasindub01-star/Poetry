@@ -225,6 +225,9 @@ html[data-contrast="high"] .glass-panel,
 html[data-contrast="high"] .nav-glass {
   border-width: 2px;
 }
+html[data-contrast="high"] {
+  filter: contrast(1.08);
+}
 
 /* ===== ACCESSIBILITY: DENSITY ===== */
 html[data-density="compact"]  { --density-scale: 0.85; }
@@ -236,6 +239,15 @@ html[data-density="compact"] table td { padding-top: 0.4rem; padding-bottom: 0.4
 html[data-density="comfortable"] table th,
 html[data-density="comfortable"] table td { padding-top: 1rem; padding-bottom: 1rem; }
 html[data-density="comfortable"] .glass-panel { padding: calc(1rem * var(--density-scale, 1)); }
+html[data-density="compact"] .glass-panel { padding: 0.7rem; }
+html[data-density="compact"] input,
+html[data-density="compact"] button,
+html[data-density="compact"] select,
+html[data-density="compact"] textarea { min-height: 2rem; }
+html[data-density="comfortable"] input,
+html[data-density="comfortable"] button,
+html[data-density="comfortable"] select,
+html[data-density="comfortable"] textarea { min-height: 2.5rem; }
 
 /* ========== GLASS PANEL ========== */
 .glass-panel {
