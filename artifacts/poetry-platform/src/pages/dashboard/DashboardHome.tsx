@@ -11,6 +11,7 @@ const COLORS = ["#C8A96E", "#1A7A6B", "#B85C5C", "#4F7CBF", "#8B6DB5"];
 const statusColors: Record<string, string> = {
   pending: "bg-amber-500/20 text-amber-400 border-amber-500/20",
   under_review: "bg-blue-500/20 text-blue-400 border-blue-500/20",
+  sent_for_final_decision: "bg-amber-500/20 text-amber-400 border-amber-500/20",
   jury_assigned: "bg-purple-500/20 text-purple-400 border-purple-500/20",
   evaluated: "bg-teal-500/20 text-teal-400 border-teal-500/20",
   approved: "bg-green-500/20 text-green-400 border-green-500/20",
@@ -146,6 +147,26 @@ export default function DashboardHome() {
     { id: 15, referenceNumber: "AHA-2026-015", poemTitle: "Spirit of the Nation", assignedAt: "2026-01-22T16:00:00Z", deadlineAt: "2026-01-24T16:00:00Z", status: "submitted" },
     { id: 10, referenceNumber: "AHA-2026-010", poemTitle: "Whisper of the Wind", assignedAt: "2026-02-25T09:00:00Z", deadlineAt: "2026-02-27T09:00:00Z", status: "expired" },
   ];
+  const latestSubmissions = [
+    { id: 1, poemTitle: "Desert Song", poetName: "Mohammed Al Mansoori", status: "approved" },
+    { id: 2, poemTitle: "Voice of the Palm", poetName: "Fatima Al Hashimi", status: "under_review" },
+    { id: 3, poemTitle: "Pearl of the Gulf", poetName: "Khalid Al Rashidi", status: "jury_form_under_review" },
+    { id: 4, poemTitle: "Sunset over Abu Dhabi", poetName: "Aisha Al Marzouqi", status: "under_review" },
+    { id: 5, poemTitle: "The Brave Falcon", poetName: "Omar Al Shamsi", status: "sent_for_final_decision" },
+    { id: 7, poemTitle: "Mountains of Hejaz", poetName: "Rashid Al Ketbi", status: "pending_information" },
+    { id: 9, poemTitle: "The Brave Camel", poetName: "Yousef Al Hammadi", status: "rejected" },
+    { id: 10, poemTitle: "Whisper of the Wind", poetName: "Hessa Al Falasi", status: "under_jury_review" },
+    { id: 11, poemTitle: "Heritage of the Ancestors", poetName: "Abdullah Al Muhairi", status: "sent_for_final_decision" },
+    { id: 15, poemTitle: "Spirit of the Nation", poetName: "Saeed Al Ameri", status: "final_form_under_review" },
+  ];
+  const latestForRole = isSultan
+    ? latestSubmissions.filter((row) =>
+      row.status === "sent_for_final_decision" || row.status === "approved" || row.status === "rejected")
+    : latestSubmissions;
+  const statusLabel = (status: string) => {
+    if (status === "sent_for_final_decision") return "Pending";
+    return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  };
 
   const juryStatCards = [
     { label: "Total Submissions", value: juryAssigned.length, icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> },
@@ -197,17 +218,25 @@ export default function DashboardHome() {
             className="lg:col-span-2 glass-panel rounded-xl p-5 border border-gold/10"
           >
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold">Latest 10 Submissions</h3>
+              <h3 className="text-sm font-semibold">Recent 10 Submissions</h3>
               <Link href="/dashboard/submissions" className="text-xs text-gold hover:underline">
                 Open submissions
               </Link>
             </div>
             <div className="space-y-1">
-              {juryAssigned.slice(0, 10).map((row, i) => (
+              {(isReviewer || isSultan ? latestForRole : juryAssigned).slice(0, 10).map((row, i) => (
                 <Link key={row.id} href={`/dashboard/submissions?open=${row.id}`}>
                   <div className="px-3 py-2 rounded-lg hover:bg-white/5 transition-colors flex items-center gap-3 cursor-pointer">
                     <span className="w-6 text-xs text-gold font-semibold">{i + 1}.</span>
-                    <span className="text-sm">{row.poemTitle}</span>
+                    <span className="text-sm flex-1 min-w-0 truncate">{row.poemTitle}</span>
+                    {(isReviewer || isSultan) && (
+                      <>
+                        <span className="text-xs text-foreground/60 hidden sm:inline truncate max-w-28">{(row as any).poetName}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] border whitespace-nowrap ${statusColors[(row as any).status] ?? "bg-border/30 text-foreground/60 border-border/40"}`}>
+                          {statusLabel((row as any).status)}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </Link>
               ))}

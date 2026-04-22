@@ -193,7 +193,11 @@ export default function SubmissionsPage() {
 
   const filtered = useMemo(() => {
     const getEffectiveStatus = (s: Submission) =>
-      isSultan && sultanDecisions[s.id] ? sultanDecisions[s.id] : s.status;
+      isSultan
+        ? (s.id === 11
+            ? "sent_for_final_decision"
+            : (sultanDecisions[s.id] ? sultanDecisions[s.id] : s.status))
+        : s.status;
 
     let list = fakeSubmissions.map((s) => ({ ...s, status: getEffectiveStatus(s) }));
     if (isJury) {
