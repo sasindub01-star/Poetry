@@ -26,10 +26,6 @@ const SULTAN_DECISIONS_KEY = "sultan-final-decisions";
 const ASSIGNED_JURY_KEY = "reviewer-assigned-jury";
 
 function stageIndex(status: string) {
-  // Per current UI requirement: treat Jury Form Under Review as Jury tab (Tab 5).
-  if (status === "jury_form_under_review") {
-    return STATUS_ORDER.indexOf("under_jury_review");
-  }
   const i = STATUS_ORDER.indexOf(status);
   return i === -1 ? 0 : i;
 }
@@ -353,7 +349,17 @@ export default function SubmissionDetail() {
   });
 
   const statusColors = isDark ? statusColorsDark : statusColorsLight;
-  const currentStageIdx = stageIndex(submission.status);
+  const assignedJury = assignedJuryBySubmission[submission.id] ?? [];
+  const hasAnyJuryResponse = assignedJury.some((member) => member.responded);
+  const workflowStatus =
+    submission.status === "sent_to_jury" || submission.status === "under_jury_review"
+      ? (hasAnyJuryResponse ? "under_jury_review" : "sent_to_jury")
+      : submission.status;
+  const stageStatus =
+    submission.status === "jury_form_under_review"
+      ? "under_jury_review"
+      : workflowStatus;
+  const currentStageIdx = stageIndex(stageStatus);
   const isJuryEvaluationPhase = [
     "under_jury_review",
     "jury_review_closed",
@@ -364,8 +370,8 @@ export default function SubmissionDetail() {
     "rejected",
     "returned_for_clarification",
     "archived",
-  ].includes(submission.status);
-  const showAssignedJurySection = submission.status === "sent_to_jury";
+  ].includes(workflowStatus);
+  const showAssignedJurySection = stageStatus === "sent_to_jury";
 
   // Missing field detection
   const missingFields: string[] = [];
@@ -564,7 +570,7 @@ export default function SubmissionDetail() {
 
   // Reviewer action buttons based on current status
   function ReviewerActions() {
-    const s = submission.status;
+    const s = stageStatus;
     return (
       <div className="glass-panel rounded-xl border border-gold/15 p-5 space-y-3">
         <h3 className="text-xs font-semibold text-foreground/40 uppercase tracking-wider">
@@ -637,22 +643,20 @@ export default function SubmissionDetail() {
             </>
           )}
 
-          {/* Stage 3 mapped to Jury tab in UI – do not show assignment actions here */}
+          {/* Stage 3 – Jury form review */}
           {s === "jury_form_under_review" && (
             <>
               <button
                 onClick={() => setShowJuryForm(true)}
                 className="px-4 py-2 rounded-lg border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 text-sm font-medium transition-all"
               >
-                View jury form
+                Preview jury form
               </button>
               <button
-                onClick={() =>
-                  requestReviewerConfirmation("close_jury_stage", "Confirm Jury Closure", "Close the jury stage for this submission?")
-                }
-                className="px-4 py-2 rounded-lg border border-teal-500/30 text-teal-400 hover:bg-teal-500/10 text-sm font-medium transition-all"
+                onClick={() => setShowJuryModal(true)}
+                className="px-4 py-2 rounded-lg gold-gradient text-navy text-sm font-semibold transition-all"
               >
-                Close jury stage manually
+                Confirm form → Assign jury
               </button>
             </>
           )}
@@ -939,7 +943,7 @@ export default function SubmissionDetail() {
                 ...m,
                 responded: m.responded || respondedNames.has(m.name),
               }));
-              const isJuryUnderReview = submission.status === "under_jury_review";
+              const isJuryUnderReview = workflowStatus === "under_jury_review";
               const visibleEvaluations = isJuryUnderReview
                 ? submission.evaluations.filter((e: any) => e.recommendation !== "no_decision")
                 : submission.evaluations;
