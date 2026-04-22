@@ -94,7 +94,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,13 +122,6 @@ export default function LoginPage() {
       setAuthUser(user, btoa(found.email + ":" + Date.now()));
       navigate("/dashboard");
     }, 600);
-  };
-
-  const selectAccount = (acc: AccountProfile) => {
-    setEmail(acc.email);
-    setPassword(acc.password);
-    setSelectedRole(acc.role);
-    setError("");
   };
 
   return (
@@ -241,59 +233,6 @@ export default function LoginPage() {
                   ? "اختر دورك للمتابعة إلى لوحة التحكم"
                   : "Select your role or enter your credentials below"}
               </p>
-            </div>
-
-            {/* Role accounts */}
-            <div className="mb-5">
-              <p className="text-[11px] text-foreground/40 mb-2.5 uppercase tracking-wider font-semibold">
-                {lang === "ar" ? "الحسابات النشطة" : "Active accounts"}
-              </p>
-              <div className="space-y-1.5">
-                {accounts.map((acc) => {
-                  const tone = isDark ? acc.ringDark : acc.ringLight;
-                  const active = selectedRole === acc.role;
-                  return (
-                    <motion.button
-                      key={acc.email}
-                      type="button"
-                      whileHover={{ scale: 1.005, x: 1 }}
-                      whileTap={{ scale: 0.997 }}
-                      onClick={() => selectAccount(acc)}
-                      className={`w-full flex items-center justify-between p-3 rounded-xl bg-gradient-to-r ${tone} border transition-all group text-left ${
-                        active ? "ring-2 ring-gold/50" : ""
-                      }`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-full gold-gradient flex items-center justify-center text-navy text-sm font-bold flex-shrink-0">
-                          {acc.initial}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground truncate">
-                            {lang === "ar" ? acc.displayNameAr : acc.displayName}
-                          </p>
-                          <p className="text-xs text-foreground/50 truncate">
-                            {lang === "ar" ? acc.titleAr : acc.title}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] text-gold/60 group-hover:text-gold transition-colors flex-shrink-0 ml-2">
-                        {active ? "✓" : (lang === "ar" ? "اختر" : "Select")}
-                      </span>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="relative mb-5">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border/50" />
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-background px-3 text-foreground/30">
-                  {lang === "ar" ? "أو سجّل الدخول يدوياً" : "or sign in manually"}
-                </span>
-              </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
