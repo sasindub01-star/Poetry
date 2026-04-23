@@ -317,6 +317,7 @@ export default function SubmissionDetail() {
   const [deadline, setDeadline] = useState("48");
   const [consolidationNote, setConsolidationNote] = useState("");
   const [confirmDecision, setConfirmDecision] = useState<"approved" | "rejected" | null>(null);
+  const [sultanComment, setSultanComment] = useState("");
   const [notifyChannels, setNotifyChannels] = useState({ email: true, sms: false, whatsapp: false });
   const [notifyMessage, setNotifyMessage] = useState("");
   const [reviewerConfirm, setReviewerConfirm] = useState<null | { action: ReviewerAction; title: string; message: string }>(null);
@@ -472,12 +473,17 @@ export default function SubmissionDetail() {
   }
 
   function sultanDecision(decision: "approved" | "rejected") {
+    const note = sultanComment.trim();
     setSubmission((prev: any) => ({
       ...prev,
       status: decision,
-      finalDecision: decision === "approved" ? "Approved by Dr. Sultan" : "Rejected by Dr. Sultan",
+      finalDecision:
+        decision === "approved"
+          ? (note ? `Approved by Dr. Sultan — ${note}` : "Approved by Dr. Sultan")
+          : `Rejected by Dr. Sultan${note ? ` — ${note}` : ""}`,
     }));
     showToast(decision === "approved" ? "Final decision recorded: Approved" : "Final decision recorded: Rejected");
+    setSultanComment("");
   }
 
   function requestSultanDecision(decision: "approved" | "rejected") {
@@ -499,6 +505,10 @@ export default function SubmissionDetail() {
 
   function confirmSultanDecision() {
     if (!confirmDecision) return;
+    if (confirmDecision === "rejected" && sultanComment.trim().length === 0) {
+      showToast("Comment is required for rejection.");
+      return;
+    }
     sultanDecision(confirmDecision);
     try {
       const raw = localStorage.getItem(SULTAN_DECISIONS_KEY);
@@ -1140,6 +1150,19 @@ export default function SubmissionDetail() {
             <h3 className="text-xs font-semibold text-foreground/40 uppercase tracking-wider mb-3">
               Final Decision
             </h3>
+            <div className="mb-4">
+              <label className="text-xs text-foreground/40 uppercase tracking-wider mb-2 block">
+                Comment {submission.status === "sent_for_final_decision" ? "(required for Reject)" : ""}
+              </label>
+              <textarea
+                rows={3}
+                value={sultanComment}
+                onChange={(e) => setSultanComment(e.target.value)}
+                placeholder="Add your decision comment..."
+                className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-gold/50 resize-none"
+                disabled={submission.status !== "sent_for_final_decision" && submission.status !== "approved" && submission.status !== "rejected"}
+              />
+            </div>
             {submission.status === "sent_for_final_decision" || submission.status === "approved" || submission.status === "rejected" ? (
               <div className="flex flex-wrap gap-3">
                 <button

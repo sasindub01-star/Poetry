@@ -310,7 +310,7 @@ export default function SubmissionsPage() {
             )}
             {isJury && (
               <span className="ms-2 text-gold/70">
-                · {lang === "ar" ? "وضع المراجعة المغفلة (هوية الشاعر مخفية)" : "Blind review mode — poet identity hidden"}
+                · {lang === "ar" ? "مراجعة عضو لجنة التحكيم — هوية الشاعر مخفية" : "Jury member review - poet identity hidden"}
               </span>
             )}
             {isSultan && (
@@ -525,7 +525,7 @@ export default function SubmissionsPage() {
               <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-md border-b border-gold/15 px-6 py-4 flex items-center justify-between">
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-gold/70 font-semibold">
-                    {lang === "ar" ? "مراجعة لجنة التحكيم" : "Jury Review"}
+                    {lang === "ar" ? "مراجعة عضو لجنة التحكيم" : "Jury Member Review"}
                   </p>
                   <h3 className="text-lg font-display font-bold mt-0.5">
                     {activeSub.referenceNumber} · {lang === "ar" ? activeSub.poemTitleAr : activeSub.poemTitle}
